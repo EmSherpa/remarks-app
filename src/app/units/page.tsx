@@ -7,6 +7,8 @@ export default function UnitsPage() {
   const [unitName, setUnitName] = useState("");
   const [unitId, setUnitId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [planText, setPlanText] = useState("");
 
   async function handleCreateUnit() {
     setCreating(true);
@@ -18,6 +20,24 @@ export default function UnitsPage() {
     const data = await res.json();
     setUnitId(data.unit?.id ?? null);
     setCreating(false);
+  }
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !unitId) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch(`/api/units/${unitId}/plan`, {
+      method: "POST",
+      body: formData, // no Content-Type header — the browser sets the
+                       // correct multipart boundary automatically
+    });
+    const data = await res.json();
+    setPlanText(data.planText ?? "");
+    setUploading(false);
   }
 
   return (
@@ -34,9 +54,22 @@ export default function UnitsPage() {
       </button>
 
       {unitId && (
-        <p style={{ color: "green" }}>
-          Unit created — id: <code>{unitId}</code>
-        </p>
+        <div style={{ marginTop: 16 }}>
+          <p style={{ color: "green" }}>Unit created — id: <code>{unitId}</code></p>
+          <label>
+            Upload unit plan (.docx)
+            <input type="file" accept=".docx" onChange={handleFileUpload} disabled={uploading} />
+          </label>
+          {uploading && <p>Extracting text…</p>}
+          {planText && (
+            <div style={{ marginTop: 8 }}>
+              <strong>Extracted text (preview):</strong>
+              <p style={{ maxHeight: 150, overflow: "auto", border: "1px solid #ccc", padding: 8 }}>
+                {planText.slice(0, 500)}…
+              </p>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
