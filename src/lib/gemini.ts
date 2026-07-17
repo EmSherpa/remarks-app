@@ -8,7 +8,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 // Re-check ai.google.dev/gemini-api/docs/models and your project's live
 // limits in AI Studio before relying on this long-term — Google revises
 // free-tier limits and model availability without much notice.
-const MODEL = "gemini-2.5-flash-lite";
+const MODEL = "gemini-3.1-flash-lite-preview";
 
 function parseJson<T>(text: string): T {
   // responseMimeType below should give clean JSON already; strip fences
