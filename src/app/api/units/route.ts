@@ -23,3 +23,13 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ unit: data });
 }
+export async function GET() {
+  const supabase = supabaseServer();
+  const { data, error } = await supabase
+    .from("units")
+    .select("*, rubrics(id, criteria, locked)")
+    .order("created_at", { ascending: false });
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ units: data });
+}

@@ -28,3 +28,12 @@ export default function RootLayout({
     </html>
   );
 }
+<nav style={{ display: "flex", gap: 16, marginBottom: 24 }}>
+  <a href="/sections">Sections</a>
+  <a href="/units">1. Units & rubrics</a>
+  <a href="/marks">2. Enter marks</a>
+  <a href="/generate">3. Generate & export</a>
+  <a href="/students">Students</a>
+  <a href="/quarters">Quarters</a>
+  <a href="/marks">2. Enter marks</a>
+</nav>
