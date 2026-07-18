@@ -71,10 +71,7 @@ async function handleGenerateRubric() {
       return;
     }
     setCriteria(data.rubric?.criteria ?? null);
-<<<<<<< HEAD
-    setRubricId(data.rubric?.id ?? null); // <-- new line
-=======
->>>>>>> 66d02fe083fa3a61661c67a7099c489396805575
+    setRubricId(data.rubric?.id ?? null);
     setOverview(data.overview ?? "");
   } catch (err) {
     alert("Rubric generation failed: " + (err as Error).message);
@@ -82,7 +79,7 @@ async function handleGenerateRubric() {
     setGenerating(false);
   }
 }
-<<<<<<< HEAD
+
 async function handleLockRubric() {
   if (!rubricId || !unitId || !criteria) return;
   const res = await fetch(`/api/rubric/${rubricId}/lock`, {
@@ -97,9 +94,7 @@ async function handleLockRubric() {
     alert("Locking failed: " + data.error);
   }
 }
-=======
 
->>>>>>> 66d02fe083fa3a61661c67a7099c489396805575
 async function checkExistingRubric() {
   setCheckingLibrary(true);
   try {
@@ -220,7 +215,6 @@ async function checkExistingRubric() {
       value={overview}
       onChange={(e) => setOverview(e.target.value)}
     />
-<<<<<<< HEAD
 
     {!locked ? (
       <button style={{ marginTop: 12 }} onClick={handleLockRubric}>
@@ -230,8 +224,6 @@ async function checkExistingRubric() {
       <p style={{ color: "green", marginTop: 12 }}>✓ Rubric locked</p>
     )}
     
-=======
->>>>>>> 66d02fe083fa3a61661c67a7099c489396805575
   </div>
 )}
     </div>
