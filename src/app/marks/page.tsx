@@ -1,10 +1,18 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useToast } from "@/components/Toast";
+import { StepProgress } from "@/components/StepProgress";
 
 interface Section { id: string; name: string; grade: string; }
 interface Student { id: string; name: string; }
 interface Criterion { name: string; max: number; }
-interface Unit { id: string; name: string; rubrics: { id: string; criteria: Criterion[]; locked: boolean }[]; }
+interface Unit {
+  id: string;
+  name: string;
+  grade: string;
+  rubrics: { id: string; criteria: Criterion[]; locked: boolean }[];
+  quarters: { id: string; label: string } | null;
+}
 interface Quarter { id: string; label: string; }
 
 interface RowState {
@@ -13,12 +21,14 @@ interface RowState {
 }
 
 export default function MarksPage() {
+  const { showToast } = useToast();
+
   const [sections, setSections] = useState<Section[]>([]);
   const [sectionId, setSectionId] = useState("");
-  const [units, setUnits] = useState<Unit[]>([]);
-  const [unitId, setUnitId] = useState("");
   const [quarters, setQuarters] = useState<Quarter[]>([]);
   const [quarterId, setQuarterId] = useState("");
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [unitId, setUnitId] = useState("");
 
   const [students, setStudents] = useState<Student[]>([]);
   const [grid, setGrid] = useState<Record<string, RowState>>({});
@@ -30,11 +40,31 @@ export default function MarksPage() {
     fetch("/api/quarters").then((r) => r.json()).then((d) => setQuarters(d.quarters ?? []));
   }, []);
 
+  const selectedSection = sections.find((s) => s.id === sectionId);
+
+  // Unit choices are filtered by TWO things, not just "locked":
+  // 1. grade must match the selected section's grade — this is the fix for
+  //    Grade 6 units showing up while entering marks for a Grade 7 section.
+  // 2. quarter must match the selected quarter, OR the unit predates the
+  //    quarter-tagging feature (quarters === null) — kept visible rather
+  //    than silently hidden, so older units aren't orphaned by this change.
+  const availableUnits = units.filter(
+    (u) =>
+      u.rubrics.some((r) => r.locked) &&
+      u.grade === selectedSection?.grade &&
+      (!u.quarters || u.quarters.id === quarterId)
+  );
+
+  // Resetting the unit whenever section or quarter changes prevents a stale
+  // selection from a previous grade/quarter silently carrying over.
+  useEffect(() => {
+    setUnitId("");
+  }, [sectionId, quarterId]);
+
   const selectedUnit = units.find((u) => u.id === unitId);
   const lockedRubric = selectedUnit?.rubrics.find((r) => r.locked);
   const criteria = lockedRubric?.criteria ?? [];
 
-  // Load students + any existing marks whenever all three pickers are set.
   useEffect(() => {
     if (!sectionId || !lockedRubric || !quarterId) return;
 
@@ -77,35 +107,34 @@ export default function MarksPage() {
       [studentId]: { ...prev[studentId], submitted: !prev[studentId].submitted },
     }));
   }
-function handlePaste(e: React.ClipboardEvent, startStudentIndex: number, startCriterionIndex: number) {
-  const text = e.clipboardData.getData("text");
-  // Only intervene if this actually looks like a multi-cell paste (tabs or
-  // newlines present) — otherwise let the browser handle a normal single-value
-  // paste as usual.
-  if (!text.includes("\t") && !text.includes("\n")) return;
 
-  e.preventDefault();
-  const rows = text.trim().split("\n").map((row) => row.split("\t"));
+  function handlePaste(e: React.ClipboardEvent, startStudentIndex: number, startCriterionIndex: number) {
+    const text = e.clipboardData.getData("text");
+    if (!text.includes("\t") && !text.includes("\n")) return;
 
-  setGrid((prev) => {
-    const next = { ...prev };
-    rows.forEach((rowValues, rowOffset) => {
-      const student = students[startStudentIndex + rowOffset];
-      if (!student) return; // pasted more rows than remaining students — stop safely
+    e.preventDefault();
+    const rows = text.trim().split("\n").map((row) => row.split("\t"));
 
-      const updatedScores = { ...next[student.id].scores };
-      rowValues.forEach((val, colOffset) => {
-        const criterion = criteria[startCriterionIndex + colOffset];
-        if (!criterion) return; // pasted more columns than remaining criteria
-        const num = Number(val.trim());
-        if (!isNaN(num)) updatedScores[criterion.name] = num;
+    setGrid((prev) => {
+      const next = { ...prev };
+      rows.forEach((rowValues, rowOffset) => {
+        const student = students[startStudentIndex + rowOffset];
+        if (!student) return;
+
+        const updatedScores = { ...next[student.id].scores };
+        rowValues.forEach((val, colOffset) => {
+          const criterion = criteria[startCriterionIndex + colOffset];
+          if (!criterion) return;
+          const num = Number(val.trim());
+          if (!isNaN(num)) updatedScores[criterion.name] = num;
+        });
+
+        next[student.id] = { ...next[student.id], scores: updatedScores };
       });
-
-      next[student.id] = { ...next[student.id], scores: updatedScores };
+      return next;
     });
-    return next;
-  });
-}
+  }
+
   async function handleSave() {
     if (!lockedRubric || !quarterId) return;
     setSaving(true);
@@ -128,10 +157,10 @@ function handlePaste(e: React.ClipboardEvent, startStudentIndex: number, startCr
       });
       const data = await res.json();
       if (!res.ok) {
-        alert("Save failed: " + data.error);
+        showToast("Save failed: " + data.error, "error");
         return;
       }
-      alert("Saved.");
+      showToast("Marks saved.", "success");
     } finally {
       setSaving(false);
     }
@@ -139,37 +168,45 @@ function handlePaste(e: React.ClipboardEvent, startStudentIndex: number, startCr
 
   return (
     <div>
+      <StepProgress current={2} />
       <h2>Enter marks</h2>
 
-      <label>
-        Section
-        <select value={sectionId} onChange={(e) => setSectionId(e.target.value)}>
-          <option value="">— choose —</option>
-          {sections.map((s) => <option key={s.id} value={s.id}>{s.grade} — {s.name}</option>)}
-        </select>
-      </label>
-      {" "}
-      <label>
-        Unit (locked rubrics only)
-        <select value={unitId} onChange={(e) => setUnitId(e.target.value)}>
-          <option value="">— choose —</option>
-          {units.filter((u) => u.rubrics.some((r) => r.locked)).map((u) => (
-            <option key={u.id} value={u.id}>{u.name}</option>
-          ))}
-        </select>
-      </label>
-      {" "}
-      <label>
-        Quarter
-        <select value={quarterId} onChange={(e) => setQuarterId(e.target.value)}>
-          <option value="">— choose —</option>
-          {quarters.map((q) => <option key={q.id} value={q.id}>{q.label}</option>)}
-        </select>
-      </label>
+      <div className="field-row">
+        <div className="field">
+          <label>1. Section</label>
+          <select value={sectionId} onChange={(e) => setSectionId(e.target.value)}>
+            <option value="">— choose —</option>
+            {sections.map((s) => <option key={s.id} value={s.id}>{s.grade} — {s.name}</option>)}
+          </select>
+        </div>
+
+        <div className="field">
+          <label>2. Quarter</label>
+          <select value={quarterId} onChange={(e) => setQuarterId(e.target.value)} disabled={!sectionId}>
+            <option value="">— choose —</option>
+            {quarters.map((q) => <option key={q.id} value={q.id}>{q.label}</option>)}
+          </select>
+        </div>
+
+        <div className="field">
+          <label>3. Unit</label>
+          <select value={unitId} onChange={(e) => setUnitId(e.target.value)} disabled={!sectionId || !quarterId}>
+            <option value="">— choose —</option>
+            {availableUnits.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {sectionId && quarterId && availableUnits.length === 0 && (
+        <div className="empty-state">
+          No locked units found for {selectedSection?.grade}, this quarter. Create and lock one on the Units page first.
+        </div>
+      )}
 
       {students.length > 0 && criteria.length > 0 && (
         <>
-          <table border={1} cellPadding={4} style={{ marginTop: 16 }}>
+        <div className="table-scroll">
+          <table style={{ marginTop: 16 }}>
             <thead>
               <tr>
                 <th>Student</th>
@@ -185,7 +222,7 @@ function handlePaste(e: React.ClipboardEvent, startStudentIndex: number, startCr
                     <td key={c.name}>
                       <input
                         type="number"
-                        style={{ width: 50 }}
+                        style={{ width: 60 }}
                         disabled={!grid[s.id]?.submitted}
                         value={grid[s.id]?.scores[c.name] ?? ""}
                         onChange={(e) => updateScore(s.id, c.name, e.target.value)}
@@ -204,6 +241,7 @@ function handlePaste(e: React.ClipboardEvent, startStudentIndex: number, startCr
               ))}
             </tbody>
           </table>
+          </div>
           <button style={{ marginTop: 12 }} onClick={handleSave} disabled={saving}>
             {saving ? "Saving…" : "Save marks"}
           </button>

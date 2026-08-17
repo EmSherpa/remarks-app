@@ -1,49 +1,320 @@
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  /* Color — a quiet, ink-and-slate palette instead of default corporate blue */
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --surface-sunken: #eef0f3;
+  --border: #dde1e6;
+  --text: #1a1d23;
+  --text-muted: #667085;
+  --text-faint: #98a2b3;
+  --accent: #3a5a9c;
+  --accent-hover: #2d4779;
+  --accent-soft: #eaf0fb;
+  --success: #1a7f4e;
+  --success-soft: #e7f6ee;
+  --danger: #b3392c;
+  --danger-soft: #fbeae7;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+  /* Spacing scale — use these instead of arbitrary px values */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
 
-html {
-  height: 100%;
-}
-
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-body {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --radius: 8px;
+  --radius-sm: 5px;
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --shadow-md: 0 2px 8px rgba(16, 24, 40, 0.08);
 }
 
 * {
   box-sizing: border-box;
-  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
   margin: 0;
+  -webkit-font-smoothing: antialiased;
 }
 
-a {
-  color: inherit;
+h1, h2, h3, h4 {
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  margin: 0 0 var(--sp-2) 0;
+}
+h2 { font-size: 1.375rem; margin-bottom: var(--sp-5); }
+h3 { font-size: 1.1rem; margin-top: var(--sp-5); }
+h4 { font-size: 0.95rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+
+p { margin: 0 0 var(--sp-3) 0; }
+
+a { color: var(--accent); }
+
+/* ---------- Nav ---------- */
+nav {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: var(--sp-3) var(--sp-5);
+  display: flex;
+  gap: var(--sp-5);
+  align-items: center;
+}
+nav a {
+  color: var(--text-muted);
   text-decoration: none;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: var(--sp-1) 0;
+  border-bottom: 2px solid transparent;
+}
+nav a:hover { color: var(--text); }
+nav a.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+main {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-5) var(--sp-7);
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
+/* ---------- Step progress indicator ---------- */
+.step-progress {
+  display: flex;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-6);
+}
+.step-progress .step {
+  flex: 1;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-faint);
+  text-align: center;
+}
+.step-progress .step.current {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.step-progress .step.done {
+  color: var(--success);
+}
+
+/* ---------- Cards / sections ---------- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--sp-5);
+  margin-bottom: var(--sp-4);
+  box-shadow: var(--shadow-sm);
+}
+.card-muted {
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--sp-4);
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.badge-success { background: var(--success-soft); color: var(--success); }
+.badge-accent { background: var(--accent-soft); color: var(--accent); }
+
+/* ---------- Form elements ---------- */
+label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: var(--sp-1);
+}
+
+input, select, textarea {
+  font-family: inherit;
+  font-size: 0.95rem;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  width: 100%;
+}
+input:focus, select:focus, textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+.field {
+  margin-bottom: var(--sp-4);
+  max-width: 420px;
+}
+.field-row {
+  display: flex;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-4);
+}
+.field-row .field { flex: 1; min-width: 180px; margin-bottom: 0; }
+
+/* ---------- Buttons ---------- */
+button {
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 650;
+  padding: 9px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+button:hover:not(:disabled) { background: var(--accent-hover); }
+button:disabled { background: var(--text-faint); cursor: not-allowed; }
+
+button.secondary {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+button.secondary:hover:not(:disabled) { background: var(--surface-sunken); }
+
+button.danger {
+  background: var(--surface);
+  color: var(--danger);
+  border-color: var(--danger-soft);
+}
+button.danger:hover:not(:disabled) { background: var(--danger-soft); }
+
+/* ---------- Tables ---------- */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+th {
+  background: var(--surface-sunken);
+  color: var(--text-muted);
+  text-align: left;
+  padding: var(--sp-3);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid var(--border);
+}
+td {
+  padding: var(--sp-3);
+  border-top: 1px solid var(--border);
+  vertical-align: top;
+}
+tr:nth-child(even) td { background: var(--surface-sunken); }
+
+/* ---------- Empty state ---------- */
+.empty-state {
+  padding: var(--sp-6);
+  text-align: center;
+  color: var(--text-faint);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+/* ---------- Toasts ---------- */
+.toast-stack {
+  position: fixed;
+  bottom: var(--sp-5);
+  right: var(--sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  z-index: 100;
+}
+.toast {
+  min-width: 260px;
+  max-width: 360px;
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  font-size: 0.87rem;
+  font-weight: 500;
+  color: white;
+  animation: toast-in 0.15s ease-out;
+}
+.toast-error { background: var(--danger); }
+.toast-success { background: var(--success); }
+.toast-info { background: var(--text); }
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation: none; }
+}
+
+/* ---------- Horizontal scroll wrapper for wide tables ---------- */
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius);
+}
+.table-scroll table { box-shadow: none; } /* wrapper carries the shadow instead */
+
+/* ---------- Button groups that should wrap instead of overflow ---------- */
+.btn-row {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Comfortable touch target size on all devices, not just mobile */
+button { min-height: 40px; }
+
+/* ---------- Mobile breakpoint ---------- */
+@media (max-width: 640px) {
+  nav {
+    flex-wrap: wrap;
+    gap: var(--sp-3);
+    padding: var(--sp-3) var(--sp-4);
   }
+  nav a { font-size: 0.8rem; }
+
+  main { padding: var(--sp-4) var(--sp-3) var(--sp-6); }
+
+  h2 { font-size: 1.2rem; }
+
+  .field-row { flex-direction: column; gap: var(--sp-3); }
+  .field-row .field { min-width: 100%; }
+
+  .step-progress { flex-wrap: wrap; }
+  .step-progress .step { flex: 1 1 45%; }
+
+  .card { padding: var(--sp-4); }
+
+  th, td { padding: var(--sp-2); font-size: 0.85rem; }
 }

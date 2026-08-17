@@ -75,3 +75,92 @@ Respond with ONLY this JSON shape:
   const result = await withRetry(() => model.generateContent(prompt));
   return parseJson(result.response.text());
 }
+
+export async function generateQuarterSummary(params: {
+  grade: string;
+  subject: string;
+  quarterLabel: string;
+  units: { name: string; overview: string }[];
+}): Promise<string> {
+  const { grade, subject, quarterLabel, units } = params;
+
+  const prompt = `Act as a ${grade} ${subject} teacher writing the ${quarterLabel} curriculum
+summary for a report card.
+
+Here is each unit covered this quarter, in the order they were taught:
+${units.map((u, i) => `${i + 1}. ${u.name}: ${u.overview}`).join("\n")}
+
+Write ONE short paragraph (4-6 sentences) merging these into a single coherent narrative of the
+quarter's learning journey — not a list of units, a flowing story with natural transitions
+("began by...", "then transitioned into...", "the quarter culminated in..."). Match the actual
+teaching order given above.
+
+Respond with ONLY the paragraph text, no JSON, no quotation marks, no preamble.`;
+
+  const model = genAI.getGenerativeModel({ model: MODEL });
+  const result = await withRetry(() => model.generateContent(prompt));
+  return result.response.text().trim();
+}
+
+export interface StudentQuarterRecord {
+  student_name: string;
+  units: {
+    unit_name: string;
+    criteria: { name: string; max: number }[];
+    scores: Record<string, number> | null;
+  }[];
+}
+
+export interface GeneratedRemark {
+  student_name: string;
+  remark: string;
+}
+
+/**
+ * Batched remark generation for a whole class at once — not one call per
+ * student. Doing it per-student loses the "read back through prior remarks
+ * to avoid repeating vocabulary" quality we relied on doing this by hand
+ * earlier in this project. For very large classes (30+), you'd eventually
+ * want to chunk into groups and feed earlier chunks' output back in as
+ * "already used, don't repeat" context — not needed yet at your class sizes.
+ */
+export async function generateRemarks(params: {
+  grade: string;
+  subject: string;
+  quarterLabel: string;
+  unitOverviews: string; // merged quarter summary paragraph
+  students: StudentQuarterRecord[];
+}): Promise<GeneratedRemark[]> {
+  const { grade, subject, quarterLabel, unitOverviews, students } = params;
+
+  const prompt = `Act as a ${grade} ${subject} teacher writing ${quarterLabel} report card remarks.
+
+Quarter summary (already finalized, do not rewrite):
+"""
+${unitOverviews}
+"""
+
+Student data (scores per unit, per criterion; null scores object means no submission):
+${JSON.stringify(students, null, 2)}
+
+For each student, write ONE consolidated remark for the whole quarter using the
+Strength-Weakness-Action (SWA) structure:
+1. Strength — genuine, grounded in their actual highest-relative scores.
+2. Weakness — one clear area tied to their lowest-relative score(s), stated plainly.
+3. Action — a concrete, subject-specific next step.
+
+3-4 sentences, flowing prose. Vary vocabulary and sentence openings across students — read back
+through your own earlier remarks in this same response before writing the next one. For students
+with no submission in any unit, skip the SWA structure and write a short neutral note instead.
+Use warm, professional, age-appropriate language. Never mention raw scores.
+
+Respond with ONLY this JSON array:
+[{"student_name": "...", "remark": "..."}]`;
+
+  const model = genAI.getGenerativeModel({
+    model: MODEL,
+    generationConfig: { responseMimeType: "application/json" },
+  });
+  const result = await withRetry(() => model.generateContent(prompt));
+  return parseJson(result.response.text());
+}
