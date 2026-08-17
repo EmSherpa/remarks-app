@@ -58,8 +58,8 @@ export async function consolidateQuarterData(sectionId: string, quarterId: strin
     overview: r.units.overview,
   }));
 
-  const grade = rubrics[0]?.units.grade ?? "";
-  const subject = rubrics[0]?.units.subject ?? "";
+  const grade = (rubrics[0] as any)?.units.grade ?? "";
+  const subject = (rubrics[0] as any)?.units.subject ?? "";
 
   return { students: studentRecords, unitsUsed, grade, subject };
 }
