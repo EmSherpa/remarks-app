@@ -124,11 +124,17 @@ export interface GeneratedRemark {
  * want to chunk into groups and feed earlier chunks' output back in as
  * "already used, don't repeat" context — not needed yet at your class sizes.
  */
+const MIN_WORDS = 90;
+
+function wordCount(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
 export async function generateRemarks(params: {
   grade: string;
   subject: string;
   quarterLabel: string;
-  unitOverviews: string; // merged quarter summary paragraph
+  unitOverviews: string;
   students: StudentQuarterRecord[];
 }): Promise<GeneratedRemark[]> {
   const { grade, subject, quarterLabel, unitOverviews, students } = params;
@@ -145,14 +151,20 @@ ${JSON.stringify(students, null, 2)}
 
 For each student, write ONE consolidated remark for the whole quarter using the
 Strength-Weakness-Action (SWA) structure:
-1. Strength — genuine, grounded in their actual highest-relative scores.
-2. Weakness — one clear area tied to their lowest-relative score(s), stated plainly.
-3. Action — a concrete, subject-specific next step.
+1. Strength (about 2 sentences) — grounded in their actual highest-relative scores. Name the
+   specific skills or topics from the criteria, not generic praise.
+2. Weakness (1-2 sentences) — one clear area tied to their lowest-relative score(s). Say what
+   this looks like in practice and why it matters for the next unit.
+3. Action (about 2 sentences) — a concrete, subject-specific next step: a specific practice
+   activity, habit, or task the student can do, not a vague hope.
 
-3-4 sentences, flowing prose. Vary vocabulary and sentence openings across students — read back
-through your own earlier remarks in this same response before writing the next one. For students
-with no submission in any unit, skip the SWA structure and write a short neutral note instead.
-Use warm, professional, age-appropriate language. Never mention raw scores.
+LENGTH IS A HARD REQUIREMENT: every remark must be between 90 and 120 words. Never write fewer
+than 90 words. Count carefully before moving on to the next student.
+
+Write in flowing prose. Vary vocabulary and sentence openings across students — read back through
+your own earlier remarks in this same response before writing the next one. For students with no
+submission in any unit, skip the SWA structure and the word minimum, and write a short neutral
+note instead. Use warm, professional, age-appropriate language. Never mention raw scores.
 
 Respond with ONLY this JSON array:
 [{"student_name": "...", "remark": "..."}]`;
@@ -162,5 +174,44 @@ Respond with ONLY this JSON array:
     generationConfig: { responseMimeType: "application/json" },
   });
   const result = await withRetry(() => model.generateContent(prompt));
-  return parseJson(result.response.text());
+  const remarks: GeneratedRemark[] = parseJson(result.response.text());
+
+  // Students with no submission in any unit get a deliberately short note,
+  // so they're exempt from the word minimum.
+  const noSubmission = new Set(
+    students.filter((s) => s.units.every((u) => u.scores === null)).map((s) => s.student_name)
+  );
+
+  const tooShort = remarks.filter(
+    (r) => !noSubmission.has(r.student_name) && wordCount(r.remark) < MIN_WORDS
+  );
+  if (tooShort.length === 0) return remarks;
+
+  // One expansion pass for just the short ones. If a remark is still short
+  // after this, we keep it rather than looping — the teacher can edit it in
+  // the review table.
+  const shortNames = new Set(tooShort.map((r) => r.student_name));
+  const retryPrompt = `These ${grade} ${subject} report card remarks are too short. Rewrite each one
+to be 95-120 words. Keep the same Strength → Weakness → Action structure and the same core points,
+but add specific detail: name concrete skills or topics from the unit criteria, describe what the
+weakness looks like in practice, and make the action step concrete. Do not invent claims the
+data doesn't support. Do not mention raw scores.
+
+Student data:
+${JSON.stringify(students.filter((s) => shortNames.has(s.student_name)), null, 2)}
+
+Current remarks:
+${JSON.stringify(tooShort, null, 2)}
+
+Respond with ONLY this JSON array:
+[{"student_name": "...", "remark": "..."}]`;
+
+  const retryResult = await withRetry(() => model.generateContent(retryPrompt));
+  const expanded: GeneratedRemark[] = parseJson(retryResult.response.text());
+  const expandedByName = new Map(expanded.map((r) => [r.student_name, r.remark]));
+
+  return remarks.map((r) => ({
+    ...r,
+    remark: expandedByName.get(r.student_name) ?? r.remark,
+  }));
 }

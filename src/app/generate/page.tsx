@@ -153,7 +153,7 @@ export default function GeneratePage() {
                   <td style={{ verticalAlign: "top", fontWeight: "bold" }}>{r.student_name}</td>
                   <td>
                     <textarea
-                      rows={4}
+                      rows={7}
                       style={{ width: "100%" }}
                       value={r.remark}
                       onChange={(e) => {
