@@ -27,13 +27,13 @@ export default function RootLayout({
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>
         <nav>
-  <a href="/sections">Sections</a>
-  <a href="/students">Students</a>
-  <a href="/quarters">Quarters</a>
-  <a href="/units">1. Units & rubrics</a>
-  <a href="/marks">2. Enter marks</a>
-  <a href="/generate">3. Generate & export</a>
-</nav>
+          <a href="/sections">Sections</a>
+          <a href="/students">Students</a>
+          <a href="/quarters">Quarters</a>
+          <a href="/units">1. Units & rubrics</a>
+          <a href="/marks">2. Enter marks</a>
+          <a href="/generate">3. Generate & export</a>
+        </nav>
         <main><ToastProvider>{children}</ToastProvider></main>
       </body>
     </html>
